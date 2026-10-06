@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>AstroScope — Your Personal Sky</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+
+<link href="css/style.css" rel="stylesheet"/></head>
+<body>
+<canvas id="starcanvas"></canvas>
+<div id="stars"></div>
+<div class="wrap">
+<nav class="topnav">
+<div class="navrow">
+<div class="brand">✦ ASTROSCOPE</div>
+<div class="navlinks">
+<a data-nav="home" href="#hero" onclick="return gotoPage(event,'home')">Home</a>
+<a data-nav="tonight" href="#tonight" onclick="return gotoPage(event,'tonight')">Tonight</a>
+<a data-nav="events" href="#events" onclick="return gotoPage(event,'events')">Events</a>
+<a data-nav="calendar" href="#calendar" onclick="return gotoPage(event,'calendar')">Calendar</a>
+<a data-nav="future" href="#future" onclick="return gotoPage(event,'future')">Yearly Sky</a>
+<a data-nav="moon" href="#moon" onclick="return gotoPage(event,'moon')">Moon</a>
+<a data-nav="facts" href="#facts" onclick="return gotoPage(event,'facts')">Facts</a>
+<a data-nav="learn" href="#learn" onclick="return gotoPage(event,'learn')">About</a>
+</div>
+<div class="navright">
+<button class="iconbtn" onclick="openSearch()" title="Search">⌕</button>
+<button class="pill" id="locPill" onclick="openLocationModal()">📍 Set location</button>
+<button class="btn btn-ghost" onclick="showPage('mysky')" style="padding:9px 16px;">My Sky</button>
+</div>
+</div>
+</nav>
+<div class="mobilenav">
+<a class="active" href="#hero" onclick="return gotoPage(event,'home')">🏠<span>Home</span></a>
+<a href="#tonight" onclick="return gotoPage(event,'tonight')">🌙<span>Tonight</span></a>
+<a href="#events" onclick="return gotoPage(event,'events')"><svg height="1em" style="vertical-align:-0.15em;" viewbox="0 0 24 24" width="1em"><path d="M3 21 L13 11" opacity="0.55" stroke="#ff9d5c" stroke-linecap="round" stroke-width="2.2"></path><path d="M7 21 L15 13" opacity="0.35" stroke="#ff9d5c" stroke-linecap="round" stroke-width="1.6"></path><circle cx="17" cy="7" fill="#ffb066" r="3.6"></circle></svg><span>Events</span></a>
+<a href="#moon" onclick="return gotoPage(event,'moon')">🌗<span>Moon</span></a>
+<a href="#facts" onclick="return gotoPage(event,'facts')">✦<span>Facts</span></a>
+<a href="#mysky" onclick="return gotoPage(event,'mysky')">⭐<span>My Sky</span></a>
+</div>
+<!-- HERO -->
+<section class="hero" id="hero">
+<div class="container">
+<span class="pill hidden" id="watchingFrom">📍 Watching from — select a location</span>
+<p class="muted" style="text-align:center; font-size:12.5px; margin-top:6px;">AstroScope — an interactive solar system, and your personalized sky.</p>
+</div>
+<div class="solar-wrap" id="solarWrap">
+<div class="solar-glow"></div>
+<div class="solar-system" id="solarSystem">
+<div class="sun" id="sunBody" onclick="showSunFact()" title="The Sun"></div>
+<!-- orbit rings + planets injected by JS -->
+</div>
+</div>
+<p class="muted" style="text-align:center; font-size:12.5px; margin-top:10px;">Tap a planet for a random fact.</p>
+</section>
+<!-- PLANET FACT SIDE PANEL -->
+<div id="planetPanelScrim" onclick="closePlanetPanel()"></div>
+<div id="planetPanel">
+<button class="iconbtn" onclick="closePlanetPanel()" style="margin-bottom:18px;">✕</button>
+<div id="planetModalBody"></div>
+</div>
+<!-- LOCATION + NEXT EVENT -->
+<section id="nextEventSection">
+<div class="container">
+<div class="card nextevent" id="nextEventCard"></div>
+</div>
+</section>
+<!-- TONIGHT'S SKY -->
+<section id="tonight">
+<div class="container">
+<div class="sectitle"><h2>Tonight's Sky</h2><span class="sub" id="tonightDate">Your window to the cosmos</span></div>
+<div class="condrow" id="condRow"></div>
+<div class="card intelligence-card" id="skyIntelligenceCard" style="padding:22px; margin-bottom:16px;">
+<div class="intel-head"><div><div class="muted intel-kicker">PERSONAL SKY INTELLIGENCE</div><h3 id="intelTitle">Your best observing window</h3></div><div class="score-ring" id="astroScore">—</div></div>
+<div class="muted" id="intelBody">Select a location to calculate your observing window.</div>
+</div>
+<div class="card" id="visibleNowCard" style="padding:20px; margin-bottom:16px;">
+<div class="feature-head"><div><div class="muted intel-kicker">LIVE SKY</div><h3>🔭 What's Visible Right Now?</h3></div><button class="btn btn-primary" onclick="renderVisibleNow()">Refresh</button></div>
+<div class="visible-now-grid" id="visibleNowGrid"></div>
+</div>
+<div class="card skymap-card" id="skyMapCard" style="padding:20px; margin-bottom:16px;">
+<div class="feature-head"><div><div class="muted intel-kicker">INTERACTIVE SKY MAP</div><h3>Show me what I'll see</h3></div><div class="muted" id="skyMapTime" style="font-size:12px;">Now</div></div>
+<canvas aria-label="Interactive sky map" id="skyMapCanvas"></canvas>
+<div class="skymap-help">Drag to rotate · scroll/pinch to zoom · tap an object to identify it</div>
+<div class="muted" id="skyMapSelected" style="font-size:12px; margin-top:8px; min-height:18px;"></div>
+</div>
+
+<div class="card" id="weatherCard" style="padding:18px; margin-bottom:16px;">
+<div class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">Astronomy Observing Conditions</div>
+<div class="muted" id="weatherBody" style="font-size:13px;">Weather conditions unavailable.</div>
+</div>
+<div class="card" id="spaceWeatherCard" style="padding:18px; margin-bottom:16px;">
+<div class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">Space Weather · Australian Region (BOM)</div>
+<div class="muted" id="spaceWeatherBody" style="font-size:13px;">Space weather data unavailable.</div>
+</div>
+<div class="grid-tonight" id="objGrid"></div>
+</div>
+</section>
+<!-- WHY -->
+<section id="whySection">
+<div class="container">
+<div class="sectitle"><h2>Why Does This Happen?</h2><span class="sub">Orbital geometry behind tonight's sky</span></div>
+<div class="card" style="padding:30px;">
+<div class="why-flow">
+<div class="node">☀️ Sun</div><div class="arrow">→</div>
+<div class="node">🌍 Earth</div><div class="arrow">→</div>
+<div class="node">🌙 Moon</div>
+</div>
+<p style="text-align:center; font-size:14px; max-width:640px; margin:0 auto; color:var(--ink-dim); line-height:1.75;">The Moon's illuminated fraction changes as it orbits Earth roughly every 29.5 days, changing the angle at which sunlight reaches the side facing us. Eclipses occur only when the Sun, Earth and Moon align near the Moon's orbital nodes.</p>
+
+<div class="orbit-lab" style="margin-top:24px;">
+<canvas aria-label="Interactive eclipse geometry" id="orbitLabCanvas"></canvas>
+<label class="orbit-control">Drag the Moon around Earth
+    <input id="moonOrbitSlider" max="360" min="0" oninput="renderOrbitLab()" type="range" value="55"/>
+</label>
+<div class="orbit-verdict" id="orbitVerdict">Move the Moon to explore the geometry.</div>
+</div>
+</div>
+</div>
+</section>
+<!-- EVENTS -->
+<section id="events">
+<div class="container">
+<div class="sectitle"><h2>Explore Events</h2><span class="sub">Curated from NASA / JPL / IAU eclipse &amp; meteor shower catalogs</span></div>
+<div class="filters">
+<select id="fCategory"><option value="">All Categories</option></select>
+<select id="fVisibility"><option value="">Any Visibility</option><option value="visible">Visible from my location</option></select>
+<select id="fRange"><option value="365">Next 12 months</option><option value="90">Next 3 months</option><option value="30">Next 30 days</option><option value="1000">Everything</option></select>
+</div>
+<div class="evgrid" id="evGrid"></div>
+</div>
+</section>
+<!-- TIMELINE -->
+<section id="timelineSection">
+<div class="container">
+<div class="sectitle"><h2>Astronomy Timeline</h2><span class="sub">What's coming in your sky</span></div>
+<div class="card" style="padding:26px 30px;"><div class="tl" id="tlList"></div></div>
+</div>
+</section>
+<!-- CALENDAR -->
+<section id="calendar">
+<div class="container">
+<div class="sectitle">
+<h2>Astronomy Calendar</h2>
+<div>
+<button class="iconbtn" onclick="calShift(-1)">‹</button>
+<span class="pill" id="calLabel" style="margin:0 6px;"></span>
+<button class="iconbtn" onclick="calShift(1)">›</button>
+</div>
+</div>
+<div class="card" style="padding:18px;"><div id="calGrid"></div></div>
+</div>
+</section>
+<!-- YEARLY SKY -->
+<section id="future">
+<div class="container">
+<div class="sectitle"><h2>The Yearly Sky</h2><span class="sub">Calculated sky geometry + near-term weather forecast when available</span></div>
+<div class="filters"><select id="futureYear"></select></div>
+<div class="condrow" style="margin-bottom:8px;">
+<div class="card c"><div class="l">🟢 High Confidence</div><div class="v" style="font-size:12px; font-weight:400; color:var(--ink-dim);">Eclipses, equinoxes, solstices, moon phases — precisely calculable decades ahead.</div></div>
+<div class="card c"><div class="l">🟡 Periodic</div><div class="v" style="font-size:12px; font-weight:400; color:var(--ink-dim);">Meteor showers &amp; planetary cycles — reliable annual recurrence.</div></div>
+<div class="card c"><div class="l">🔴 Variable</div><div class="v" style="font-size:12px; font-weight:400; color:var(--ink-dim);">Comets &amp; transient objects — need continuously updated data.</div></div>
+</div>
+<div class="evgrid" id="futureGrid"></div>
+</div>
+</section>
+<!-- MOON -->
+<section id="moon">
+<div class="container">
+<div class="sectitle"><h2>Moon</h2><span class="sub" id="moonSub">Tonight's lunar state</span></div>
+<div class="grid-tonight">
+<div class="card" style="padding:22px; grid-column:span 1;">
+<div class="moonvis" id="moonVis"></div>
+</div>
+<div class="card" style="padding:22px;">
+<div class="obj-card"><div class="stat">Phase</div><div class="big" id="moonPhaseName">—</div></div>
+<div class="obj-card" style="margin-top:10px;"><div class="stat">Illumination</div><div class="big" id="moonIllum">—</div></div>
+</div>
+<div class="card" style="padding:22px;">
+<div class="obj-card"><div class="stat">Lunar Age</div><div class="big" id="moonAge">—</div></div>
+<div class="obj-card" style="margin-top:10px;"><div class="stat">Distance</div><div class="big" id="moonDist">—</div></div>
+</div>
+<div class="card" style="padding:22px;">
+<div class="obj-card"><div class="stat">Next Full Moon</div><div class="big" id="nextFull" style="font-size:15px;">—</div></div>
+<div class="obj-card" style="margin-top:10px;"><div class="stat">Next New Moon</div><div class="big" id="nextNew" style="font-size:15px;">—</div></div>
+</div>
+</div>
+<div class="card" id="moonRenderCard" style="padding:22px; margin-top:16px; text-align:center;">
+<div class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px;">Live Moon Render · AstronomyAPI</div>
+<div class="muted" id="moonRenderBody" style="font-size:13px;">Select a location to render tonight's Moon.</div>
+</div>
+</div>
+</section>
+<!-- FACTS -->
+<section id="facts">
+<div class="container">
+<div class="sectitle"><h2>Cosmic Facts</h2><span class="sub">One tap, one wonder ✦</span></div>
+<div class="ff-wrap">
+<div id="factFlipCard" onclick="flipFact()">
+<div class="ff-inner" id="flipInner">
+<div class="ff-face ff-front" id="flipFront">
+<div class="ff-mark">✦</div>
+<div class="ff-label">Tap for a fact</div>
+</div>
+<div class="ff-face ff-back" id="flipBack"></div>
+</div>
+</div>
+<div class="ff-hint">Tap the card for another fact</div>
+<div class="ff-counter" id="ffCounter">19 cosmic curiosities to discover</div>
+</div>
+</div>
+</section>
+<!-- LEARN -->
+<section id="learn">
+<div class="container">
+<div class="sectitle"><h2>Learn</h2><span class="sub">Understand what's above you ✦</span></div>
+<div class="card" id="apodCard" style="padding:18px; margin-bottom:16px;">
+<div class="muted" style="font-size:11px; text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px;">NASA Picture of the Day</div>
+<div class="muted" id="apodBody" style="font-size:13px;">Loading…</div>
+</div>
+<div class="evgrid" id="learnGrid"></div>
+</div>
+</section>
+<!-- MY SKY -->
+<section id="mysky">
+<div class="container">
+<div class="sectitle"><h2>My Sky</h2><span class="sub">Your personal collection ⭐</span></div>
+
+<div class="card" id="reminderPanel" style="padding:20px; margin-bottom:16px;">
+<div class="feature-head"><div><div class="muted intel-kicker">SMART REMINDERS</div><h3>Observation alerts</h3></div><button class="btn btn-ghost" onclick="requestNotificationAccess()">Enable notifications</button></div>
+<div class="muted" style="font-size:12.5px; line-height:1.6;">Save an event, then turn on its reminder. AstroScope checks upcoming events and alerts you when the event is close and observing conditions are favorable while the app is running.</div>
+<div id="reminderList" style="margin-top:12px;"></div>
+</div>
+<div class="evgrid" id="favGrid"><div class="muted" style="padding:20px;">No saved events yet — tap ☆ on any event to save it here.</div></div>
+</div>
+</section>
+<footer>
+<div class="container">
+<div class="footgrid">
+<div>
+<div class="brand">✦ ASTROSCOPE</div>
+<p class="muted" style="margin-top:6px; font-size:13px;">Explore the universe.</p>
+</div>
+<div class="footlinks">
+<a href="#events">Events</a><a href="#calendar">Calendar</a><a href="#tonight">Tonight</a><a href="#moon">Moon</a><a href="#learn">Learn</a>
+</div>
+</div>
+<div class="muted" style="font-size:12px; margin-top:18px;">Event catalog: normalized astronomy feed with local fallback. Live integrations are proxied through the AstroScope server.</div>
+<div class="disclaimer">Astronomical visibility calculations are estimates based on astronomical data and your selected location. Local weather, terrain, buildings, and light pollution can affect actual viewing conditions.</div>
+</div>
+</footer>
+</div>
+<!-- LOCATION MODAL -->
+<div class="modal-bg hidden" id="locModal">
+<div class="modal" style="position:relative;">
+<button class="iconbtn modal-close" onclick="closeModal('locModal')">✕</button>
+<h2>Where are you watching from?</h2>
+<p style="font-size:13px; margin-bottom:20px; color:var(--ink-dim); line-height:1.6;">We'll personalise visibility, rise/set times and events for your location.</p>
+<button class="btn btn-primary" onclick="useMyLocation()" style="width:100%; justify-content:center; margin-bottom:14px;">📍 Use my location</button>
+<div class="searchbox">
+<input id="citySearch" oninput="renderCityResults(this.value)" placeholder="Or search a city…" type="text"/>
+<div id="cityResults" style="margin-top:10px; max-height:240px; overflow-y:auto;"></div>
+</div>
+</div>
+</div>
+<!-- SEARCH MODAL -->
+<div class="modal-bg hidden" id="searchModal">
+<div class="modal" style="position:relative;">
+<button class="iconbtn modal-close" onclick="closeModal('searchModal')">✕</button>
+<h2>Search the sky ✦</h2>
+<div class="searchbox" style="margin-top:16px;">
+<input id="globalSearch" oninput="renderSearch(this.value)" placeholder="Try: next eclipse, meteor showers, full moon…" type="text"/>
+<div id="searchResults" style="margin-top:12px; max-height:320px; overflow-y:auto;"></div>
+</div>
+</div>
+</div>
+<!-- EVENT DETAIL MODAL -->
+<div class="modal-bg hidden" id="eventModal">
+<div class="modal" id="eventModalBody" style="position:relative;"></div>
+</div>
+
+<script src="js/app.js"></script><script src="js/enhancements.js"></script></body>
+</html>
